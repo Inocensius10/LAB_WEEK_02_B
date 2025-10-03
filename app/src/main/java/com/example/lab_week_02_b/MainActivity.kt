@@ -7,45 +7,30 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val COLOR_KEY = "COLOR_KEY"
-        private const val ERROR_KEY = "ERROR_MESSAGE"
+        private const val ERROR_KEY = "ERROR_KEY"
     }
 
     private val submitButton: Button
         get() = findViewById(R.id.submit_button)
 
-    // Launcher modern pengganti startActivityForResult
-    private val resultLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val inputWrapper = findViewById<TextInputLayout>(R.id.color_code_input_wraper)
-        inputWrapper.error = null
-
-        if (result.resultCode == RESULT_CANCELED) {
-            // Ambil error dari ResultActivity
-            val msg = result.data?.getStringExtra(ERROR_KEY)
-            if (!msg.isNullOrBlank()) {
-                inputWrapper.error = msg
-            } else {
-                inputWrapper.error = getString(R.string.color_code_input_invalid)
-            }
-        } else if (result.resultCode == RESULT_OK) {
-            // Opsional: tampilkan toast sukses
-            val applied = result.data?.getStringExtra(COLOR_KEY)?.uppercase()
-            if (!applied.isNullOrBlank()) {
+    // Activity Result Launcher
+    private val startForResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
+            val data = activityResult.data
+            val error = data?.getBooleanExtra(ERROR_KEY, false)
+            if (error == true) {
                 Toast.makeText(
                     this,
-                    getString(R.string.color_code_result_message, applied),
-                    Toast.LENGTH_SHORT
+                    getString(R.string.color_code_input_invalid),
+                    Toast.LENGTH_LONG
                 ).show()
             }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,27 +40,25 @@ class MainActivity : AppCompatActivity() {
             val colorCode =
                 findViewById<TextInputEditText>(R.id.color_code_input_field).text.toString()
 
-            when {
-                colorCode.isEmpty() -> {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.color_code_input_empty),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                colorCode.length < 6 -> {
+            if (colorCode.isNotEmpty()) {
+                if (colorCode.length < 6) {
                     Toast.makeText(
                         this,
                         getString(R.string.color_code_input_wrong_length),
                         Toast.LENGTH_LONG
                     ).show()
+                } else {
+                    val resultIntent = Intent(this, ResultActivity::class.java)
+                    resultIntent.putExtra(COLOR_KEY, colorCode)
+                    // startActivity(resultIntent)  <-- sudah tidak dipakai
+                    startForResult.launch(resultIntent)
                 }
-                else -> {
-                    // Kirim ke ResultActivity via launcher (bukan startActivity)
-                    val intent = Intent(this, ResultActivity::class.java)
-                        .putExtra(COLOR_KEY, colorCode)
-                    resultLauncher.launch(intent)
-                }
+            } else {
+                Toast.makeText(
+                    this,
+                    getString(R.string.color_code_input_empty),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

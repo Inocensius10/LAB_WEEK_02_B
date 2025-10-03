@@ -11,8 +11,7 @@ class ResultActivity : AppCompatActivity() {
 
     companion object {
         private const val COLOR_KEY = "COLOR_KEY"
-        private const val ERROR_KEY = "ERROR_MESSAGE"
-        private val HEX6 = Regex("^[0-9A-Fa-f]{6}$")
+        private const val ERROR_KEY = "ERROR_KEY"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,44 +22,26 @@ class ResultActivity : AppCompatActivity() {
         val backgroundScreen = findViewById<ConstraintLayout>(R.id.background_screen)
         val resultMessage = findViewById<TextView>(R.id.color_code_result_message)
 
-        // Validasi dulu biar tidak crash
+        // Kalau null/kosong, langsung kirim error balik
         if (colorCode.isNullOrBlank()) {
-            setResult(
-                RESULT_CANCELED,
-                Intent().putExtra(ERROR_KEY, getString(R.string.color_code_input_empty))
-            )
+            setResult(RESULT_OK, Intent().putExtra(ERROR_KEY, true))
             finish()
             return
         }
 
-        if (!HEX6.matches(colorCode)) {
-            setResult(
-                RESULT_CANCELED,
-                Intent().putExtra(ERROR_KEY, getString(R.string.color_code_input_invalid))
-            )
-            finish()
-            return
-        }
-
-        // Valid → terapkan warna & kirim OK
-        val hex = "#${colorCode}"
         try {
-            backgroundScreen.setBackgroundColor(Color.parseColor(hex))
-            resultMessage.text = getString(
-                R.string.color_code_result_message,
-                colorCode.uppercase()
-            )
-            setResult(
-                RESULT_OK,
-                Intent().putExtra(COLOR_KEY, colorCode)
-            )
+            backgroundScreen.setBackgroundColor(Color.parseColor("#$colorCode"))
         } catch (_: IllegalArgumentException) {
-            // Jaga-jaga kalau parse masih ngaco
-            setResult(
-                RESULT_CANCELED,
-                Intent().putExtra(ERROR_KEY, getString(R.string.color_code_input_invalid))
-            )
+            // Kode warna tidak valid → kirim error ke MainActivity lalu tutup
+            setResult(RESULT_OK, Intent().putExtra(ERROR_KEY, true))
+            finish()
+            return
         }
-        // Tidak perlu finish() paksa; biarkan user lihat hasil. Tapi kalau maunya langsung balik, panggil finish().
+
+        // Sampai sini berarti sukses
+        resultMessage.text = getString(
+            R.string.color_code_result_message,
+            colorCode.uppercase()
+        )
     }
 }
